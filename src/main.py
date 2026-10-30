@@ -5,7 +5,7 @@ import convert, copytree, os
 def main():
     basepath = get_basepath()
     copytree.copy_source_to_build()
-    generate_pages_recursive("content", "template.html", "public")
+    generate_pages_recursive("content", "template.html", "docs")
 
 def get_basepath():
     if argv[1]:
