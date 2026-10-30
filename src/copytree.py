@@ -3,7 +3,7 @@ from pathlib import Path
 
 project_root = Path(__file__).resolve().parent.parent
 source_dir = os.path.join(project_root, "static")
-build_dir = os.path.join(project_root, "public")
+build_dir = os.path.join(project_root, "docs")
 
 def simple_test():
     print (project_root, source_dir, build_dir)
