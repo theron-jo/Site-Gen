@@ -29,7 +29,7 @@ def text_node_to_html_node(node):
     if node.type not in TextType:
         raise TypeError
     if node.type == TextType.TEXT:
-        return LeafNode(value=node.text)
+        return LeafNode(None, value=node.text)
     elif node.type == TextType.BOLD:
         return LeafNode("b", node.text)
     elif node.type == TextType.ITALIC:
@@ -37,7 +37,12 @@ def text_node_to_html_node(node):
     elif node.type == TextType.CODE:
         return LeafNode("code", node.text)
     elif node.type == TextType.LINK:
-        return LeafNode("a", props={"href" : node.url})
-    elif node.type == TextType.IMAGE:
-        return LeafNode("img", props={"src":node.url, "alt": node.text})
+        if node.url is None:
+            raise ValueError("invalid URL")
+        return LeafNode("a", node.text, {"href": node.url})
+    if node.type == TextType.IMAGE:
+        if node.url is None:
+            raise ValueError("invalid URL")
+        return LeafNode("img", "", {"src": node.url, "alt": node.text})
+    raise ValueError(f"invalid text type: {node.type}")
         

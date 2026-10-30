@@ -33,11 +33,8 @@ class HTMLNode():
         return True
 
 class LeafNode(HTMLNode):
-    def __init__(self, tag=None, value=None, props=None):
+    def __init__(self, tag: str | None, value: str, props: dict[str, str] | None = None) -> None:
         super().__init__(tag, value, None, props)
-        self.tag = tag
-        self.value = value
-        self.props = props
 
     def to_html(self):
         if not self.value and self.tag not in self.VOID_ELEMENTS:
@@ -59,12 +56,10 @@ class LeafNode(HTMLNode):
         return f"LEAFNode ({self.tag}, {self.value}, {self.props})"
 
 class ParentNode(HTMLNode):
-    def __init__(self, tag=None, value=None, children:list[HTMLNode]=None, props=None):
-        super().__init__(tag, value, children, props)
-        self.tag = tag
-        self.value = value
-        self.children = children
-        self.props = props
+    def __init__(
+        self, tag: str, children: list[HTMLNode], props: dict[str, str] | None = None
+    ) -> None:
+        super().__init__(tag, None, children, props)
 
     def to_html(self):
         if not self.tag:
