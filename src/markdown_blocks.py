@@ -1,7 +1,9 @@
-import re
 from enum import Enum
-from htmlnode import ParentNode, HTMLNode
+
+from htmlnode import HTMLNode, ParentNode
+from inline_markdown import text_to_textnodes
 from textnode import TextNode, TextType, text_node_to_html_node
+
 
 class BlockType(Enum):
     PARAGRAPH = "paragraph"
@@ -12,112 +14,16 @@ class BlockType(Enum):
     ULIST = "unordered_list"
 
 
-def split_nodes_delimiter(old_nodes: list[TextNode], delimiter: str, text_type: TextType) -> list[TextNode]:
-    new_nodes = []
-    for o_n in old_nodes:
-        if o_n.type != TextType.TEXT:
-            new_nodes.append(o_n)
-        else:
-            count = o_n.text.count(delimiter)   
-            if count % 2 != 0:
-                raise TypeError ("Invalid markdown syntax")
-            split_text = o_n.text.split(delimiter)
-            for i in range(len(split_text)):
-                if not split_text[i]:
-                    continue
-                if i % 2 != 0:
-                    new_nodes.append(TextNode(split_text[i], text_type))
-                else:
-                    new_nodes.append(TextNode(split_text[i], TextType.TEXT))
-    return new_nodes
-
-def split_nodes_image(old_nodes: list[TextNode]) -> list[TextNode]:
-    new_nodes = []
-    for old_node in old_nodes:
-        if old_node.type != TextType.TEXT:
-            new_nodes.append(old_node)
-            continue
-        original_text = old_node.text
-        images = extract_markdown_images(original_text)
-        if len(images) == 0:
-            new_nodes.append(old_node)
-            continue
-        for image in images:
-            sections = original_text.split(f"![{image[0]}]({image[1]})", 1)
-            if len(sections) != 2:
-                raise ValueError("invalid markdown, image section not closed")
-            if sections[0] != "":
-                new_nodes.append(TextNode(sections[0], TextType.TEXT))
-            new_nodes.append(
-                TextNode(
-                    image[0],
-                    TextType.IMAGE,
-                    image[1],
-                )
-            )
-            original_text = sections[1]
-        if original_text != "":
-            new_nodes.append(TextNode(original_text, TextType.TEXT))
-    return new_nodes
-
-
-def split_nodes_link(old_nodes: list[TextNode]) -> list[TextNode]:
-    new_nodes = []
-    for old_node in old_nodes:
-        if old_node.type != TextType.TEXT:
-            new_nodes.append(old_node)
-            continue
-        original_text = old_node.text
-        links = extract_markdown_links(original_text)
-        if len(links) == 0:
-            new_nodes.append(old_node)
-            continue
-        for link in links:
-            sections = original_text.split(f"[{link[0]}]({link[1]})", 1)
-            if len(sections) != 2:
-                raise ValueError("invalid markdown, link section not closed")
-            if sections[0] != "":
-                new_nodes.append(TextNode(sections[0], TextType.TEXT))
-            new_nodes.append(TextNode(link[0], TextType.LINK, link[1]))
-            original_text = sections[1]
-        if original_text != "":
-            new_nodes.append(TextNode(original_text, TextType.TEXT))
-    return new_nodes
-
-
-def extract_markdown_images(text: str):
-    images = []
-    pattern = r"\!\[(.*?)\]\((https?://.*?)\)"
-    matches = re.findall(pattern, text)
-    for alt_text, url in matches:
-        images.append((alt_text, url))
-    return images
-
-def extract_markdown_links(text: str):
-    links = []
-    pattern = r"(?<!\!)\[(.*?)\]\((https?://(?:[^()]*|\([^)]*\))*)\)"
-    matches = re.findall(pattern, text)
-    for anchor, url in matches:
-        links.append((anchor, url))
-    return links
-
-def text_to_textnodes(text: str) -> list[TextNode]:
-    nodes = [TextNode(text, TextType.TEXT)]
-    nodes = split_nodes_delimiter(nodes, "**", TextType.BOLD)
-    nodes = split_nodes_delimiter(nodes, "_", TextType.ITALIC)
-    nodes = split_nodes_delimiter(nodes, "`", TextType.CODE)
-    nodes = split_nodes_image(nodes)
-    nodes = split_nodes_link(nodes)
-    return nodes
-
-def markdown_to_blocks(md: str):
-    blocks = md.split("\n\n")
+def markdown_to_blocks(markdown: str) -> list[str]:
+    blocks = markdown.split("\n\n")
+    filtered_blocks = []
     for block in blocks:
+        if block == "":
+            continue
         block = block.strip()
-        block = block.strip("\n")
-        if block == "\n" or block == "":
-            blocks.remove(block)
-    return blocks
+        filtered_blocks.append(block)
+    return filtered_blocks
+
 
 def block_to_block_type(block: str) -> BlockType:
     lines = block.split("\n")
@@ -144,6 +50,7 @@ def block_to_block_type(block: str) -> BlockType:
             i += 1
         return BlockType.OLIST
     return BlockType.PARAGRAPH
+
 
 def markdown_to_html_node(markdown: str) -> ParentNode:
     blocks = markdown_to_blocks(markdown)
@@ -186,6 +93,7 @@ def paragraph_to_html_node(block: str) -> ParentNode:
     children = text_to_children(paragraph)
     return ParentNode("p", children)
 
+
 def heading_to_html_node(block: str) -> ParentNode:
     level = 0
     for char in block:
@@ -220,6 +128,7 @@ def olist_to_html_node(block: str) -> ParentNode:
         html_items.append(ParentNode("li", children))
     return ParentNode("ol", html_items)
 
+
 def ulist_to_html_node(block: str) -> ParentNode:
     items = block.split("\n")
     html_items = []
@@ -240,10 +149,3 @@ def quote_to_html_node(block: str) -> ParentNode:
     content = " ".join(new_lines)
     children = text_to_children(content)
     return ParentNode("blockquote", children)
-
-def extract_title(markdown:str):
-    if not markdown.startswith("# "):
-        raise Exception
-    markdown = markdown.removeprefix("# ")
-    markdown = markdown.strip()
-    return markdown

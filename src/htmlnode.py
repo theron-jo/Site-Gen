@@ -1,59 +1,47 @@
-
-
-class HTMLNode():
-    VOID_ELEMENTS = frozenset({
-    'area','base','br','col','embed','hr','img','input',
-    'link','meta','param','source','track','wbr'
-})
-    def __init__(self, tag: str = None, value:str = None, children:list = None, props: dict = None):
+class HTMLNode:
+    def __init__(
+        self,
+        tag: str | None = None,
+        value: str | None = None,
+        children: list["HTMLNode"] | None = None,
+        props: dict[str, str] | None = None,
+    ) -> None:
         self.tag = tag
         self.value = value
         self.children = children
         self.props = props
 
-    def to_html(self):
-        raise NotImplementedError
+    def to_html(self) -> str:
+        raise NotImplementedError("to_html method not implemented")
 
-    def props_to_html(self):
-        if not self.props:
+    def props_to_html(self) -> str:
+        if self.props is None:
             return ""
-        html_all = ""
-        for att, prop in self.props.items():
-            html = f" {att}='{prop}'"
-            html_all += html
-        return html_all
+        props_html = ""
+        for prop in self.props:
+            props_html += f' {prop}="{self.props[prop]}"'
+        return props_html
 
-    def __repr__(self):
-        return f"HTMLNode ({self.tag}, {self.value}, {self.children}, {self.props})"
+    def __repr__(self) -> str:
+        return f"HTMLNode({self.tag}, {self.value}, children: {self.children}, {self.props})"
 
-    def __eq__(self, other) -> bool:
-        for attr in vars(self):
-            if getattr(self, attr) != getattr(other, attr):
-                return False
-        return True
 
 class LeafNode(HTMLNode):
-    def __init__(self, tag: str | None, value: str, props: dict[str, str] | None = None) -> None:
+    def __init__(
+        self, tag: str | None, value: str, props: dict[str, str] | None = None
+    ) -> None:
         super().__init__(tag, value, None, props)
 
-    def to_html(self):
-        if not self.value and self.tag not in self.VOID_ELEMENTS:
-            raise ValueError
-        if not self.tag:
+    def to_html(self) -> str:
+        if self.value is None:
+            raise ValueError("invalid HTML: no value")
+        if self.tag is None:
             return self.value
-        if self.tag in self.VOID_ELEMENTS and self.props:
-            prop_html = self.props_to_html()
-            return f"<{self.tag}{prop_html}>"
-        elif self.tag in self.VOID_ELEMENTS and not self.props:
-            return f"<{self.tag}>"
-        elif self.tag not in self.VOID_ELEMENTS and self.props:
-            prop_html = self.props_to_html()
-            return f"<{self.tag}{prop_html}>{self.value}</{self.tag}>"
-        else:
-            return f"<{self.tag}>{self.value}</{self.tag}>"
+        return f"<{self.tag}{self.props_to_html()}>{self.value}</{self.tag}>"
 
-    def __repr__(self):
-        return f"LEAFNode ({self.tag}, {self.value}, {self.props})"
+    def __repr__(self) -> str:
+        return f"LeafNode({self.tag}, {self.value}, {self.props})"
+
 
 class ParentNode(HTMLNode):
     def __init__(
@@ -61,21 +49,17 @@ class ParentNode(HTMLNode):
     ) -> None:
         super().__init__(tag, None, children, props)
 
-    def to_html(self):
-        if not self.tag:
-            raise ValueError ("Node not adorned with HTML tag")
-        if not self.children:
-            raise ValueError ("Parent Node has no assigned child Nodes")
-        all_html = ""
-        if self.props:
-            prop_html = self.props_to_html()
-            for child in self.children:
-                html = child.to_html()
-                all_html += html
-            return f"<{self.tag}{prop_html}>{all_html}</{self.tag}>"
-        else:
-            for child in self.children:
-                html = child.to_html()
-                all_html += html
-            return f"<{self.tag}>{all_html}</{self.tag}>"
+    def to_html(self) -> str:
+        if self.tag is None:
+            raise ValueError("invalid HTML: no tag")
+        if self.children is None:
+            raise ValueError("invalid HTML: no children")
+        children_html = ""
+        for child in self.children:
+            children_html += child.to_html()
+        return f"<{self.tag}{self.props_to_html()}>{children_html}</{self.tag}>"
+
+    def __repr__(self) -> str:
+        return f"ParentNode({self.tag}, children: {self.children}, {self.props})"
+
         
